@@ -78,7 +78,7 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 			},
 			{
 				name: "QQ群",
-				url: "https://qm.qq.com/q/253800977",
+				url: "https://qun.qq.com/universal-share/share?ac=1&authKey=eDCnpiEFatxq82faFSaLMZOIHt8JRVppxWR34SMJB7XLOnBaChqhHHouAcUD%2FZoe&busi_data=eyJncm91cENvZGUiOiIyNTM4MDA5NzciLCJ0b2tlbiI6ImRidFRNYlN0aDJkdVJLZGpuTHFyVEZGUTZ5eUpwZnY2QS9TQkg3V1VOaS9zeFFNQzZDcXducWxISThHVWQyb08iLCJ1aW4iOiIzMTk1NDYzMDE4In0%3D&data=jk7FgODPytFFVw7o-jPQJm1rC6SMREB2Sck0xnze5uYmm9tOLTSBr6hwNTjOG0IpFmgGj7_9HHM7ABPb571Vrw&svctype=4&tempid=h5_group_info",
 				external: true,
 				icon: "fa7-brands:qq",
 			},
