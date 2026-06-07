@@ -17,7 +17,7 @@ export const siteConfig: SiteConfig = {
 
 	// 站点描述
 	description:
-		"Maple 的个人博客，记录生活、技术和一切有趣的事物。",
+		"Maple 的小窝 🍁 — 一个南京前端开发者的博客，写代码、折腾网页、记录日常。",
 
 	// 站点关键词
 	keywords: [
