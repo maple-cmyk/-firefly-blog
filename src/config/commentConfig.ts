@@ -6,7 +6,7 @@ export const commentConfig: CommentConfig = {
 
 	// maple 自建评论系统配置
 	maple: {
-		apiUrl: "http://localhost:5000",  // 本地开发；部署后改为 https://api.maplecmyk.online
+		apiUrl: "https://firefly-blog-production.up.railway.app",
 	},
 
 	//twikoo评论系统配置
