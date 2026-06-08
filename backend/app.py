@@ -39,12 +39,17 @@ def create_app():
     def health():
         return {"status": "ok"}
 
-    # 开发阶段：创建数据库表
+    # 开发阶段：创建数据库表（生产环境建议用 flask db upgrade）
     with app.app_context():
-        from models.user import User
-        from models.comment import Comment
-        from models.like import CommentLike
-        db.create_all()
+        try:
+            from models.user import User
+            from models.comment import Comment
+            from models.like import CommentLike
+            db.create_all()
+            app.logger.info("Database tables created successfully")
+        except Exception as e:
+            app.logger.error(f"Database initialization failed: {e}")
+            # 不阻止应用启动，表不存在时请求会报错但不会完全挂掉
 
     return app
 
