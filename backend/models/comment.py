@@ -10,6 +10,7 @@ class Comment(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     guest_name = db.Column(db.String(50), nullable=True)
     guest_email = db.Column(db.String(120), nullable=True)
+    guest_qq = db.Column(db.String(20), nullable=True)
     parent_id = db.Column(db.Integer, db.ForeignKey("comments.id"), nullable=True)
     likes_count = db.Column(db.Integer, default=0)
     is_approved = db.Column(db.Boolean, default=True)
@@ -51,11 +52,14 @@ class Comment(db.Model):
             if self.author:
                 data["user"] = self.author.to_dict()
             elif self.guest_name:
-                data["user"] = {
+                user_data = {
                     "username": self.guest_name,
                     "avatar_url": "",
                     "is_admin": False,
                 }
+                if self.guest_qq:
+                    user_data["avatar_url"] = f"https://q1.qlogo.cn/g?b=qq&nk={self.guest_qq}&s=100"
+                data["user"] = user_data
 
         # 标记当前用户是否已点赞
         if current_user_id:

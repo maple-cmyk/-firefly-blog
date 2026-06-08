@@ -55,9 +55,11 @@ def create_comment(post_slug):
     # 游客评论：需要 name 和 email
     guest_name = None
     guest_email = None
+    guest_qq = None
     if not user_id:
         guest_name = data.get("name", "").strip()
         guest_email = data.get("email", "").strip().lower()
+        guest_qq = data.get("qq", "").strip() or None
         if not guest_name:
             return jsonify({"error": "请填写昵称"}), 400
         if len(guest_name) < 2 or len(guest_name) > 50:
@@ -71,6 +73,7 @@ def create_comment(post_slug):
         user_id=user_id,
         guest_name=guest_name,
         guest_email=guest_email,
+        guest_qq=guest_qq,
         parent_id=parent_id,
     )
     db.session.add(comment)

@@ -60,6 +60,13 @@ def create_app():
                     conn.execute(text("ALTER TABLE comments ALTER COLUMN user_id DROP NOT NULL"))
                     conn.commit()
                 app.logger.info("Migration: added guest_name/guest_email columns")
+
+            # 迁移：添加 QQ 字段（v3）
+            if "guest_qq" not in existing_cols:
+                with db.engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE comments ADD COLUMN guest_qq VARCHAR(20)"))
+                    conn.commit()
+                app.logger.info("Migration: added guest_qq column")
         except Exception as e:
             app.logger.error(f"Database initialization failed: {e}")
 

@@ -13,6 +13,7 @@
   // Guest info
   let guestName = "";
   let guestEmail = "";
+  let guestQQ = "";
 
   // Comment form
   let newComment = "";
@@ -23,8 +24,10 @@
   onMount(() => {
     const savedName = localStorage.getItem("maple_comment_name");
     const savedEmail = localStorage.getItem("maple_comment_email");
+    const savedQQ = localStorage.getItem("maple_comment_qq");
     if (savedName) guestName = savedName;
     if (savedEmail) guestEmail = savedEmail;
+    if (savedQQ) guestQQ = savedQQ;
     fetchComments();
   });
 
@@ -41,6 +44,10 @@
     if (day < 30) return `${day} 天前`;
     const mon = Math.floor(day / 30);
     return `${mon} 个月前`;
+  }
+
+  function qqAvatar(qq: string): string {
+    return `https://q1.qlogo.cn/g?b=qq&nk=${qq}&s=100`;
   }
 
   // --- API ---
@@ -77,6 +84,7 @@
     // 保存到 localStorage
     localStorage.setItem("maple_comment_name", guestName.trim());
     localStorage.setItem("maple_comment_email", guestEmail.trim());
+    localStorage.setItem("maple_comment_qq", guestQQ.trim());
 
     submitting = true;
     try {
@@ -85,6 +93,7 @@
         name: guestName.trim(),
         email: guestEmail.trim(),
       };
+      if (guestQQ.trim()) body.qq = guestQQ.trim();
       if (parentId) body.parent_id = parentId;
       const res = await fetch(`${apiUrl}/api/comments/${encodeURIComponent(postSlug)}`, {
         method: "POST",
@@ -145,6 +154,27 @@
                placeholder:text-black/30 dark:placeholder:text-white/30
                text-(--btn-content)"
       />
+    </div>
+
+    <!-- QQ input (optional) -->
+    <div class="mb-3">
+      <input
+        bind:value={guestQQ}
+        type="text"
+        inputmode="numeric"
+        placeholder="QQ 号（选填，用于获取头像）"
+        class="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/2 dark:bg-white/5
+               px-4 py-2.5 text-sm outline-none
+               focus:border-(--primary) focus:ring-1 focus:ring-(--primary)
+               placeholder:text-black/30 dark:placeholder:text-white/30
+               text-(--btn-content)"
+      />
+      {#if guestQQ.trim()}
+        <div class="mt-2 flex items-center gap-2 text-xs text-(--content-meta)">
+          <img src={qqAvatar(guestQQ.trim())} alt="头像预览" class="w-6 h-6 rounded-full" />
+          <span>头像预览</span>
+        </div>
+      {/if}
     </div>
 
     <div class="flex gap-3">
@@ -217,12 +247,18 @@
 <!-- Comment Item -->
 {#snippet CommentItem(args: { comment: any; timeAgo: Function })}
   {@const { comment, timeAgo: ta } = args}
+  {@const avatarUrl = comment.user?.avatar_url || ""}
   <div class="group">
     <div class="flex gap-3">
-      <div class="w-10 h-10 rounded-full bg-(--primary)/10 overflow-hidden shrink-0 flex items-center justify-center
-                  text-(--primary) text-sm font-bold">
-        {comment.user?.username?.[0]?.toUpperCase() || "?"}
-      </div>
+      <!-- Avatar: QQ头像 > 首字母 -->
+      {#if avatarUrl}
+        <img src={avatarUrl} alt={comment.user?.username} class="w-10 h-10 rounded-full shrink-0 object-cover" />
+      {:else}
+        <div class="w-10 h-10 rounded-full bg-(--primary)/10 overflow-hidden shrink-0 flex items-center justify-center
+                    text-(--primary) text-sm font-bold">
+          {comment.user?.username?.[0]?.toUpperCase() || "?"}
+        </div>
+      {/if}
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="font-semibold text-sm text-(--btn-content)">{comment.user?.username || "匿名"}</span>
