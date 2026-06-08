@@ -1,0 +1,21 @@
+---
+import { commentConfig } from "@/config/commentConfig";
+import MapleComment from "./MapleComment.svelte";
+
+interface Props {
+  path: string;
+  title?: string;
+}
+
+const { path, title } = Astro.props;
+const mapleCfg = (commentConfig as any).maple || { apiUrl: "http://localhost:5000" };
+const apiUrl = mapleCfg.apiUrl || "http://localhost:5000";
+---
+
+<div class="maple-comment-wrapper">
+  <MapleComment
+    postSlug={path}
+    apiUrl={apiUrl}
+    client:load
+  />
+</div>

@@ -223,9 +223,9 @@ export type LicenseConfig = {
 export type CommentConfig = {
 	/**
 	 * 当前启用的评论系统类型
-	 * "none" | "twikoo" | "waline" | "giscus" | "disqus" | 'artalk'
+	 * "none" | "twikoo" | "waline" | "giscus" | "disqus" | 'artalk' | 'maple'
 	 */
-	type: "none" | "twikoo" | "waline" | "giscus" | "disqus" | "artalk";
+	type: "none" | "twikoo" | "waline" | "giscus" | "disqus" | "artalk" | "maple";
 	twikoo?: {
 		envId: string;
 		region?: string;
@@ -281,6 +281,9 @@ export type CommentConfig = {
 	};
 	disqus?: {
 		shortname: string;
+	};
+	maple?: {
+		apiUrl: string; // Flask 后端 API 地址
 	};
 };
 
