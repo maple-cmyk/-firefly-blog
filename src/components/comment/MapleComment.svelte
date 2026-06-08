@@ -6,19 +6,19 @@
   let { postSlug = "", apiUrl = "http://localhost:5000" }: { postSlug: string; apiUrl: string } = $props();
 
   // --- State ---
-  let comments: any[] = [];
-  let loading = true;
-  let error = "";
+  let comments = $state<any[]>([]);
+  let loading = $state(true);
+  let error = $state("");
 
   // Guest info
-  let guestName = "";
-  let guestEmail = "";
-  let guestQQ = "";
+  let guestName = $state("");
+  let guestEmail = $state("");
+  let guestQQ = $state("");
 
   // Comment form
-  let newComment = "";
-  let replyTo: { id: number; username: string } | null = null;
-  let submitting = false;
+  let newComment = $state("");
+  let replyTo = $state<{ id: number; username: string } | null>(null);
+  let submitting = $state(false);
 
   // --- Init ---
   onMount(() => {
@@ -70,8 +70,7 @@
   }
 
   async function submitComment(parentId?: number) {
-    const content = newComment;
-    if (!content.trim()) return;
+    if (!newComment.trim()) return;
     if (!guestName.trim()) {
       alert("请填写昵称");
       return;
@@ -89,7 +88,7 @@
     submitting = true;
     try {
       const body: any = {
-        content: content.trim(),
+        content: newComment.trim(),
         name: guestName.trim(),
         email: guestEmail.trim(),
       };
@@ -135,7 +134,8 @@
     <!-- Name + Email inputs -->
     <div class="flex gap-3 mb-3">
       <input
-        bind:value={guestName}
+        value={guestName}
+        oninput={(e) => guestName = e.currentTarget.value}
         type="text"
         placeholder="昵称 *"
         class="flex-1 rounded-xl border border-black/10 dark:border-white/10 bg-black/2 dark:bg-white/5
@@ -145,7 +145,8 @@
                text-(--btn-content)"
       />
       <input
-        bind:value={guestEmail}
+        value={guestEmail}
+        oninput={(e) => guestEmail = e.currentTarget.value}
         type="email"
         placeholder="邮箱 *（不会公开）"
         class="flex-1 rounded-xl border border-black/10 dark:border-white/10 bg-black/2 dark:bg-white/5
@@ -159,7 +160,8 @@
     <!-- QQ input (optional) -->
     <div class="mb-3">
       <input
-        bind:value={guestQQ}
+        value={guestQQ}
+        oninput={(e) => guestQQ = e.currentTarget.value}
         type="text"
         inputmode="numeric"
         placeholder="QQ 号（选填，用于获取头像）"
@@ -179,7 +181,8 @@
 
     <div class="flex gap-3">
       <textarea
-        bind:value={newComment}
+        value={newComment}
+        oninput={(e) => newComment = e.currentTarget.value}
         placeholder="写下你的评论..."
         rows="3"
         class="flex-1 rounded-xl border border-black/10 dark:border-white/10 bg-black/2 dark:bg-white/5
@@ -250,7 +253,6 @@
   {@const avatarUrl = comment.user?.avatar_url || ""}
   <div class="group">
     <div class="flex gap-3">
-      <!-- Avatar: QQ头像 > 首字母 -->
       {#if avatarUrl}
         <img src={avatarUrl} alt={comment.user?.username} class="w-10 h-10 rounded-full shrink-0 object-cover" />
       {:else}
@@ -277,7 +279,6 @@
             <Icon icon="material-symbols:reply" class="text-sm mr-0.5 inline" />回复
           </button>
         </div>
-        <!-- Nested Replies -->
         {#if comment.replies?.length > 0}
           <div class="mt-3 pl-4 border-l-2 border-(--primary)/15 space-y-3">
             {#each comment.replies as reply (reply.id)}
@@ -296,7 +297,6 @@
 
 <style>
   .maple-comments {
-    /* inherits from parent card-base */
   }
   textarea {
     field-sizing: content;
