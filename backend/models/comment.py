@@ -7,7 +7,9 @@ class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     post_slug = db.Column(db.String(500), nullable=False, index=True)
     content = db.Column(db.Text, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    guest_name = db.Column(db.String(50), nullable=True)
+    guest_email = db.Column(db.String(120), nullable=True)
     parent_id = db.Column(db.Integer, db.ForeignKey("comments.id"), nullable=True)
     likes_count = db.Column(db.Integer, default=0)
     is_approved = db.Column(db.Boolean, default=True)
@@ -45,8 +47,15 @@ class Comment(db.Model):
         else:
             data["replies"] = []
 
-        if include_user and self.author:
-            data["user"] = self.author.to_dict()
+        if include_user:
+            if self.author:
+                data["user"] = self.author.to_dict()
+            elif self.guest_name:
+                data["user"] = {
+                    "username": self.guest_name,
+                    "avatar_url": "",
+                    "is_admin": False,
+                }
 
         # 标记当前用户是否已点赞
         if current_user_id:

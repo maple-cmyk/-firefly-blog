@@ -10,31 +10,21 @@
   let loading = true;
   let error = "";
 
-  // Auth
-  let user: any = null;
-  let accessToken = "";
-  let showAuthModal = false;
-  let authTab: "login" | "register" = "login";
-  let authForm = { username: "", email: "", password: "" };
-  let authError = "";
-  let authLoading = false;
+  // Guest info
+  let guestName = "";
+  let guestEmail = "";
 
   // Comment form
   let newComment = "";
   let replyTo: { id: number; username: string } | null = null;
   let submitting = false;
 
-  // Like state (tracked locally to avoid refetch)
-  let likedIds = new Set<number>();
-
   // --- Init ---
   onMount(() => {
-    const savedToken = localStorage.getItem("maple_comment_token");
-    const savedUser = localStorage.getItem("maple_comment_user");
-    if (savedToken && savedUser) {
-      accessToken = savedToken;
-      user = JSON.parse(savedUser);
-    }
+    const savedName = localStorage.getItem("maple_comment_name");
+    const savedEmail = localStorage.getItem("maple_comment_email");
+    if (savedName) guestName = savedName;
+    if (savedEmail) guestEmail = savedEmail;
     fetchComments();
   });
 
@@ -53,18 +43,14 @@
     return `${mon} 个月前`;
   }
 
-  function authHeader(): Record<string, string> {
-    return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
-  }
-
   // --- API ---
   async function fetchComments() {
     loading = true;
     error = "";
     try {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
-      const res = await fetch(`${apiUrl}/api/comments/${encodeURIComponent(postSlug)}`, { headers });
+      const res = await fetch(`${apiUrl}/api/comments/${encodeURIComponent(postSlug)}`, {
+        headers: { "Content-Type": "application/json" },
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       comments = data.comments || [];
@@ -76,61 +62,33 @@
     }
   }
 
-  async function handleAuth() {
-    authError = "";
-    authLoading = true;
-    try {
-      const endpoint = authTab === "login" ? "login" : "register";
-      const body: any = { email: authForm.email, password: authForm.password };
-      if (authTab === "register") body.username = authForm.username;
-
-      const res = await fetch(`${apiUrl}/api/auth/${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        authError = data.error || "认证失败";
-        return;
-      }
-      user = data.user;
-      accessToken = data.access_token;
-      localStorage.setItem("maple_comment_token", accessToken);
-      localStorage.setItem("maple_comment_user", JSON.stringify(user));
-      showAuthModal = false;
-      authForm = { username: "", email: "", password: "" };
-      fetchComments(); // 刷新以更新点赞状态
-    } catch (e: any) {
-      authError = "网络错误";
-    } finally {
-      authLoading = false;
-    }
-  }
-
-  function logout() {
-    user = null;
-    accessToken = "";
-    localStorage.removeItem("maple_comment_token");
-    localStorage.removeItem("maple_comment_user");
-    likedIds = new Set();
-    fetchComments();
-  }
-
   async function submitComment(parentId?: number) {
-    const content = parentId ? newComment : newComment;
+    const content = newComment;
     if (!content.trim()) return;
-    if (!user) {
-      showAuthModal = true;
+    if (!guestName.trim()) {
+      alert("请填写昵称");
       return;
     }
+    if (!guestEmail.trim()) {
+      alert("请填写邮箱");
+      return;
+    }
+
+    // 保存到 localStorage
+    localStorage.setItem("maple_comment_name", guestName.trim());
+    localStorage.setItem("maple_comment_email", guestEmail.trim());
+
     submitting = true;
     try {
-      const body: any = { content: content.trim() };
+      const body: any = {
+        content: content.trim(),
+        name: guestName.trim(),
+        email: guestEmail.trim(),
+      };
       if (parentId) body.parent_id = parentId;
       const res = await fetch(`${apiUrl}/api/comments/${encodeURIComponent(postSlug)}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeader() },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const data = await res.json();
@@ -147,54 +105,6 @@
       submitting = false;
     }
   }
-
-  async function toggleLike(commentId: number) {
-    if (!user) {
-      showAuthModal = true;
-      return;
-    }
-    try {
-      const res = await fetch(`${apiUrl}/api/likes/${commentId}/toggle`, {
-        method: "POST",
-        headers: authHeader(),
-      });
-      const data = await res.json();
-      // Update local state
-      if (data.liked) {
-        likedIds.add(commentId);
-      } else {
-        likedIds.delete(commentId);
-      }
-      // Update count in place
-      updateLikeCount(comments, commentId, data.likes_count, data.liked);
-      comments = comments; // trigger reactivity
-    } catch (e) {}
-  }
-
-  function updateLikeCount(list: any[], id: number, count: number, liked: boolean) {
-    for (const c of list) {
-      if (c.id === id) {
-        c.likes_count = count;
-        c.is_liked = liked;
-      }
-      if (c.replies) updateLikeCount(c.replies, id, count, liked);
-    }
-  }
-
-  async function deleteComment(commentId: number) {
-    if (!confirm("确定删除这条评论吗？")) return;
-    try {
-      const res = await fetch(`${apiUrl}/api/comments/${commentId}`, {
-        method: "DELETE",
-        headers: authHeader(),
-      });
-      if (res.ok) fetchComments();
-    } catch (e) {}
-  }
-
-  function gravatar(email: string): string {
-    return `https://www.gravatar.com/avatar/${email}?d=mp&s=80`;
-  }
 </script>
 
 <div class="maple-comments">
@@ -202,23 +112,6 @@
     <Icon icon="material-symbols:chat-outline" class="text-(--primary)" />
     评论 ({comments.length})
   </h3>
-
-  <!-- Auth Bar -->
-  <div class="mb-4 flex items-center justify-between">
-    {#if user}
-      <div class="flex items-center gap-2 text-sm text-(--content-meta)">
-        <span>👋 {user.username}</span>
-        <button onclick={logout} class="text-(--primary) hover:underline text-xs">退出</button>
-      </div>
-    {:else}
-      <button
-        onclick={() => { showAuthModal = true; authTab = "login"; }}
-        class="text-sm text-(--primary) hover:underline"
-      >
-        登录后参与评论
-      </button>
-    {/if}
-  </div>
 
   <!-- Comment Form -->
   <div class="mb-6">
@@ -229,10 +122,35 @@
           class="text-(--primary) hover:underline ml-2">取消</button>
       </div>
     {/if}
+
+    <!-- Name + Email inputs -->
+    <div class="flex gap-3 mb-3">
+      <input
+        bind:value={guestName}
+        type="text"
+        placeholder="昵称 *"
+        class="flex-1 rounded-xl border border-black/10 dark:border-white/10 bg-black/2 dark:bg-white/5
+               px-4 py-2.5 text-sm outline-none
+               focus:border-(--primary) focus:ring-1 focus:ring-(--primary)
+               placeholder:text-black/30 dark:placeholder:text-white/30
+               text-(--btn-content)"
+      />
+      <input
+        bind:value={guestEmail}
+        type="email"
+        placeholder="邮箱 *（不会公开）"
+        class="flex-1 rounded-xl border border-black/10 dark:border-white/10 bg-black/2 dark:bg-white/5
+               px-4 py-2.5 text-sm outline-none
+               focus:border-(--primary) focus:ring-1 focus:ring-(--primary)
+               placeholder:text-black/30 dark:placeholder:text-white/30
+               text-(--btn-content)"
+      />
+    </div>
+
     <div class="flex gap-3">
       <textarea
         bind:value={newComment}
-        placeholder={user ? "写下你的评论..." : "登录后发表评论"}
+        placeholder="写下你的评论..."
         rows="3"
         class="flex-1 rounded-xl border border-black/10 dark:border-white/10 bg-black/2 dark:bg-white/5
                px-4 py-3 text-sm resize-none outline-none
@@ -244,10 +162,11 @@
         }}
       ></textarea>
     </div>
-    <div class="flex justify-end mt-2">
+    <div class="flex justify-between items-center mt-2">
+      <span class="text-xs text-(--content-meta)">Ctrl+Enter 发送</span>
       <button
         onclick={() => submitComment(replyTo?.id)}
-        disabled={!newComment.trim() || submitting || !user}
+        disabled={!newComment.trim() || submitting || !guestName.trim() || !guestEmail.trim()}
         class="px-5 py-1.5 rounded-full text-sm font-medium
                bg-(--primary) text-white
                hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed
@@ -287,21 +206,17 @@
       {#each comments as comment (comment.id)}
         <CommentItem
           {comment}
-          {user}
-          {likedIds}
           {timeAgo}
-          on:like={(e) => toggleLike(e.detail)}
           on:reply={(e) => { replyTo = { id: e.detail.id, username: e.detail.username }; newComment = ""; }}
-          on:delete={(e) => deleteComment(e.detail)}
         />
       {/each}
     </div>
   {/if}
 </div>
 
-<!-- Comment Item (recursive via manual flattening for simplicity) -->
-{#snippet CommentItem(args: { comment: any; user: any; likedIds: Set<number>; timeAgo: Function })}
-  {@const { comment, user: currentUser, likedIds: liked, timeAgo: ta } = args}
+<!-- Comment Item -->
+{#snippet CommentItem(args: { comment: any; timeAgo: Function })}
+  {@const { comment, timeAgo: ta } = args}
   <div class="group">
     <div class="flex gap-3">
       <div class="w-10 h-10 rounded-full bg-(--primary)/10 overflow-hidden shrink-0 flex items-center justify-center
@@ -315,30 +230,16 @@
         </div>
         <p class="text-sm text-(--btn-content) mt-1 whitespace-pre-wrap break-words">{comment.content}</p>
         <div class="flex items-center gap-4 mt-2">
-          <button
-            onclick={() => dispatch("like", comment.id)}
-            class="flex items-center gap-1 text-xs transition-colors"
-            class:text-(--primary)={comment.is_liked || liked.has(comment.id)}
-            class:text-(--content-meta)={!comment.is_liked && !liked.has(comment.id)}
-          >
-            <Icon icon={comment.is_liked || liked.has(comment.id) ? "material-symbols:favorite" : "material-symbols:favorite-outline"}
-                  class="text-sm" />
+          <span class="flex items-center gap-1 text-xs text-(--content-meta)">
+            <Icon icon="material-symbols:favorite-outline" class="text-sm" />
             {comment.likes_count > 0 ? comment.likes_count : ""}
-          </button>
+          </span>
           <button
             onclick={() => dispatch("reply", { id: comment.id, username: comment.user?.username })}
             class="text-xs text-(--content-meta) hover:text-(--primary) transition-colors"
           >
             <Icon icon="material-symbols:reply" class="text-sm mr-0.5 inline" />回复
           </button>
-          {#if currentUser && currentUser.id === comment.user?.id}
-            <button
-              onclick={() => dispatch("delete", comment.id)}
-              class="text-xs text-(--content-meta) hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-            >
-              <Icon icon="material-symbols:delete-outline" class="text-sm mr-0.5 inline" />删除
-            </button>
-          {/if}
         </div>
         <!-- Nested Replies -->
         {#if comment.replies?.length > 0}
@@ -346,12 +247,8 @@
             {#each comment.replies as reply (reply.id)}
               <CommentItem
                 comment={reply}
-                user={currentUser}
-                likedIds={liked}
                 timeAgo={ta}
-                on:like
                 on:reply
-                on:delete
               />
             {/each}
           </div>
@@ -360,88 +257,6 @@
     </div>
   </div>
 {/snippet}
-
-<!-- Auth Modal -->
-{#if showAuthModal}
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60"
-    onclick={(e) => { if (e.target === e.currentTarget) showAuthModal = false; }}
-    role="dialog"
-  >
-    <div class="bg-(--card-bg) rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl border border-black/5 dark:border-white/5">
-      <!-- Tabs -->
-      <div class="flex mb-4 border-b border-black/10 dark:border-white/10">
-        <button
-          onclick={() => { authTab = "login"; authError = ""; }}
-          class="flex-1 pb-2 text-sm font-medium transition-colors"
-          class:text-(--primary)={authTab === "login"}
-          class:text-(--content-meta)={authTab !== "login"}
-          class:border-b-2={authTab === "login"}
-          class:border-(--primary)={authTab === "login"}
-          class:border-transparent={authTab !== "login"}
-        >登录</button>
-        <button
-          onclick={() => { authTab = "register"; authError = ""; }}
-          class="flex-1 pb-2 text-sm font-medium transition-colors"
-          class:text-(--primary)={authTab === "register"}
-          class:text-(--content-meta)={authTab !== "register"}
-          class:border-b-2={authTab === "register"}
-          class:border-(--primary)={authTab === "register"}
-          class:border-transparent={authTab !== "register"}
-        >注册</button>
-      </div>
-
-      {#if authTab === "register"}
-        <input
-          bind:value={authForm.username}
-          type="text"
-          placeholder="用户名"
-          class="w-full px-4 py-2.5 mb-3 rounded-xl border border-black/10 dark:border-white/10
-                 bg-black/2 dark:bg-white/5 outline-none text-sm text-(--btn-content)
-                 focus:border-(--primary)"
-        />
-      {/if}
-      <input
-        bind:value={authForm.email}
-        type="email"
-        placeholder="邮箱"
-        class="w-full px-4 py-2.5 mb-3 rounded-xl border border-black/10 dark:border-white/10
-               bg-black/2 dark:bg-white/5 outline-none text-sm text-(--btn-content)
-               focus:border-(--primary)"
-      />
-      <input
-        bind:value={authForm.password}
-        type="password"
-        placeholder="密码"
-        class="w-full px-4 py-2.5 mb-1 rounded-xl border border-black/10 dark:border-white/10
-               bg-black/2 dark:bg-white/5 outline-none text-sm text-(--btn-content)
-               focus:border-(--primary)"
-        onkeydown={(e) => { if (e.key === "Enter") handleAuth(); }}
-      />
-
-      {#if authError}
-        <p class="text-red-500 text-xs mt-2">{authError}</p>
-      {/if}
-
-      <button
-        onclick={handleAuth}
-        disabled={authLoading}
-        class="w-full mt-4 py-2.5 rounded-xl bg-(--primary) text-white font-medium text-sm
-               hover:opacity-90 disabled:opacity-50 transition-all"
-      >
-        {authLoading ? "请稍候..." : authTab === "login" ? "登录" : "注册"}
-      </button>
-
-      <button
-        onclick={() => showAuthModal = false}
-        class="w-full mt-2 py-2 text-sm text-(--content-meta) hover:text-(--btn-content) transition-colors"
-      >
-        取消
-      </button>
-    </div>
-  </div>
-{/if}
 
 <style>
   .maple-comments {

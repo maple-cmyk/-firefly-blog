@@ -47,9 +47,21 @@ def create_app():
             from models.like import CommentLike
             db.create_all()
             app.logger.info("Database tables created successfully")
+
+            # 迁移：添加游客评论字段（v2）
+            from sqlalchemy import text, inspect
+            inspector = inspect(db.engine)
+            existing_cols = [c["name"] for c in inspector.get_columns("comments")]
+
+            if "guest_name" not in existing_cols:
+                with db.engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE comments ADD COLUMN guest_name VARCHAR(50)"))
+                    conn.execute(text("ALTER TABLE comments ADD COLUMN guest_email VARCHAR(120)"))
+                    conn.execute(text("ALTER TABLE comments ALTER COLUMN user_id DROP NOT NULL"))
+                    conn.commit()
+                app.logger.info("Migration: added guest_name/guest_email columns")
         except Exception as e:
             app.logger.error(f"Database initialization failed: {e}")
-            # 不阻止应用启动，表不存在时请求会报错但不会完全挂掉
 
     return app
 

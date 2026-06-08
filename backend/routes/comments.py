@@ -28,10 +28,9 @@ def get_comments(post_slug):
     return jsonify({"comments": result, "count": len(result)})
 
 @comments_bp.route("/<path:post_slug>", methods=["POST"])
-@jwt_required()
+@jwt_required(optional=True)
 def create_comment(post_slug):
-    """发表评论"""
-    user_id = int(get_jwt_identity())
+    """发表评论（支持游客和登录用户）"""
     data = request.get_json() or {}
     content = data.get("content", "").strip()
     parent_id = data.get("parent_id")
@@ -46,10 +45,32 @@ def create_comment(post_slug):
         if not parent or parent.post_slug != post_slug:
             return jsonify({"error": "回复的评论不存在"}), 404
 
+    # 尝试解析登录用户
+    user_id = None
+    try:
+        user_id = int(get_jwt_identity())
+    except Exception:
+        pass
+
+    # 游客评论：需要 name 和 email
+    guest_name = None
+    guest_email = None
+    if not user_id:
+        guest_name = data.get("name", "").strip()
+        guest_email = data.get("email", "").strip().lower()
+        if not guest_name:
+            return jsonify({"error": "请填写昵称"}), 400
+        if len(guest_name) < 2 or len(guest_name) > 50:
+            return jsonify({"error": "昵称需要 2-50 个字符"}), 400
+        if not guest_email:
+            return jsonify({"error": "请填写邮箱"}), 400
+
     comment = Comment(
         post_slug=post_slug,
         content=content,
         user_id=user_id,
+        guest_name=guest_name,
+        guest_email=guest_email,
         parent_id=parent_id,
     )
     db.session.add(comment)
@@ -58,16 +79,26 @@ def create_comment(post_slug):
     return jsonify({"comment": comment.to_dict(current_user_id=user_id)}), 201
 
 @comments_bp.route("/<int:comment_id>", methods=["DELETE"])
-@jwt_required()
+@jwt_required(optional=True)
 def delete_comment(comment_id):
-    """删除评论（自己的/管理员的）"""
-    user_id = int(get_jwt_identity())
+    """删除评论（自己的/管理员的）。游客评论无法删除"""
     comment = Comment.query.get(comment_id)
 
     if not comment:
         return jsonify({"error": "评论不存在"}), 404
 
-    user = User.query.get(user_id)
+    # 解析当前用户
+    user_id = None
+    try:
+        user_id = int(get_jwt_identity())
+    except Exception:
+        pass
+
+    # 游客评论不允许删除（没有身份验证）
+    if comment.user_id is None:
+        return jsonify({"error": "游客评论无法删除"}), 403
+
+    user = User.query.get(user_id) if user_id else None
     if comment.user_id != user_id and (not user or not user.is_admin):
         return jsonify({"error": "无权删除此评论"}), 403
 
