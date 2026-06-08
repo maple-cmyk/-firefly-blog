@@ -1,19 +1,4 @@
-# 关于我 / About Me
-
-你好呀！我是 **Maple** 🍁，欢迎来到我的小窝~
-
-## 👋 我是谁
-
-一个住在南京的普通男生，喜欢鼓捣代码、折腾网页，偶尔写点东西记录生活。目前是一名开发者，日常在 GitHub 上摸爬滚打，用 VS Code 和 WSL 过日子。
-
-技术栈嘛……前端后端都碰一点，最近在玩 Astro 和博客搭建，这个网站就是我自己搭的~
-
-## 🍚 生活
-
-- 住在南京，日常写代码、听歌、追番
-- 闲暇时刷刷番、打打游戏
-
-## 🛠️ 关于本站
+你好呀，我是maple，在南京读大学的一个学生，这个网站是我自己搭建的，一开始想用flask架构然后借助railway来构建后端，结果发现，flask架构不太好用，因为railway现在是收费的，导致我的后端架构在使用的时候就会导致我的网络出问题,所以采用了twikoo，这个是免费的。
 
 这个网站基于 **Astro** 构建，使用了 [Firefly](https://github.com/CuteLeaf/Firefly) 模板，托管在 GitHub Pages 上，域名是 [maplecmyk.online](https://maplecmyk.online)。
 
@@ -24,7 +9,3 @@
 - GitHub: [@maple-cmyk](https://github.com/maple-cmyk)
 - QQ群: 253800977
 - Email: 3195463018@qq.com
-
----
-
-*欢迎常来坐坐~ 🌙*
