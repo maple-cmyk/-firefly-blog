@@ -10,11 +10,13 @@ interface Props {
 const { path, title } = Astro.props;
 const mapleCfg = (commentConfig as any).maple || { apiUrl: "http://localhost:5000" };
 const apiUrl = mapleCfg.apiUrl || "http://localhost:5000";
+// 从完整路径中提取 slug（去掉 /posts/ 等前缀和尾部斜杠）
+const slug = path.replace(/^\/posts\//, "").replace(/\/$/, "");
 ---
 
 <div class="maple-comment-wrapper">
   <MapleComment
-    postSlug={path}
+    postSlug={slug}
     apiUrl={apiUrl}
     client:load
   />
