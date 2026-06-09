@@ -11,7 +11,7 @@ export const commentConfig: CommentConfig = {
 
 	//twikoo评论系统配置
 	twikoo: {
-		envId: "https://twikoo.vercel.app",  // ← 部署你自己的 Twikoo 后换掉这个地址
+		envId: "https://twikoo-5yl8y78me-maple-cmyks-projects.vercel.app",
 		// 设置 Twikoo 评论系统语言
 		lang: "zh-CN",
 		// 是否启用文章访问量统计功能
